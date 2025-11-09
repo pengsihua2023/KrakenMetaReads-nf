@@ -31,10 +31,10 @@ This workflow processes metagenome data from both Illumina (short-read) and Nano
 - **Reports**: Merged MEGAHIT vs SPAdes comparison
 
 ### Long-Read Processing (Nanopore/PacBio)
-- **Assembly**: metaFlye (supports Nanopore, PacBio CLR, PacBio HiFi)
+- **Assembly**: metaFlye (general metagenome) + viralFlye (viral-optimized) 🦠
 - **Mapping**: Minimap2 (Conda + auto symlink for dependencies)
-- **Abundance**: RPM/RPKM for each contig ⭐
-- **Classification**: Kraken2
+- **Abundance**: RPM/RPKM for each contig (both assemblers) ⭐
+- **Classification**: Kraken2 (both assemblers)
 
 ## Environment Setup
 
@@ -101,6 +101,7 @@ sbatch run_hybrid_workflow.sh
 - Requires: One or both samplesheet files
 - Output: `results_short/` and/or `results_long/`
 - Runs applicable workflows based on available data
+- Long reads: Runs **both metaFlye and viralFlye** by default 🦠
 
 ### 📝 Samplesheet File Detection
 
@@ -169,12 +170,18 @@ results_short/
 ### Long-Read Results (`results_long/`)
 ```
 results_long/
-├── abundance_flye/             # Flye abundance (RPM/RPKM)
+├── abundance_flye/                 # metaFlye abundance (RPM/RPKM)
 │   ├── *_flye_abundance.txt
 │   └── *_flye_abundance_summary.txt
-└── kraken2_flye/              # Kraken2 classification
-    ├── *_flye_classification.txt
-    └── *_flye_report.txt
+├── abundance_viralflye/            # viralFlye abundance (RPM/RPKM) 🦠
+│   ├── *_viralflye_abundance.txt
+│   └── *_viralflye_abundance_summary.txt
+├── kraken2_flye/                   # metaFlye Kraken2 classification
+│   ├── *_flye_classification.txt
+│   └── *_flye_report.txt
+└── kraken2_viralflye/              # viralFlye Kraken2 classification 🦠
+    ├── *_viralflye_classification.txt
+    └── *_viralflye_report.txt
 ```
 
 ## Key Parameters
@@ -191,6 +198,7 @@ results_long/
 - `--flye_genome_size`: Estimated metagenome size (default: `5m`)
 - `--flye_min_overlap`: Minimum overlap for assembly (default: 3000)
 - `--long_read_type`: Platform type (options: `nanopore`, `pacbio`, `pacbio-hifi`)
+- `--run_viralflye`: Run viralFlye in addition to metaFlye (default: `true`) 🦠
 
 ### General Parameters
 - `--kraken2_db`: Path to Kraken2 database (**required**)
@@ -245,8 +253,37 @@ The workflow automatically resolves the `libbz2.so.1.0` dependency issue:
 4. Works across different Linux distributions
 
 This applies to:
-- All abundance calculation processes (MEGAHIT, SPAdes, Flye)
-- Minimap2 alignment process
+- All abundance calculation processes (MEGAHIT, SPAdes, metaFlye, viralFlye)
+- Minimap2 alignment processes
+
+## viralFlye Integration
+
+### Why viralFlye?
+viralFlye uses Flye with the `--plasmids` parameter, which:
+- **Optimizes for circular viral genomes** (phages, small viruses)
+- **Detects and closes circular contigs**
+- **Better assembly for viral metagenomes**
+
+### Parallel Assembly Strategy
+The workflow runs **both metaFlye and viralFlye** on the same long-read data:
+- **metaFlye**: Captures all metagenome content (bacteria + viruses)
+- **viralFlye**: Optimized viral genome assembly
+
+### Output Comparison
+You get **two complete sets of results**:
+1. metaFlye: `abundance_flye/` + `kraken2_flye/`
+2. viralFlye: `abundance_viralflye/` + `kraken2_viralflye/`
+
+Compare results to find:
+- Viruses detected by both assemblers
+- Better-assembled viral genomes in viralFlye
+- Bacterial genomes better captured by metaFlye
+
+### Disable viralFlye
+If you only want metaFlye, edit `metagenome_hybrid_workflow.config`:
+```groovy
+run_viralflye = false
+```
 
 ## Troubleshooting
 
