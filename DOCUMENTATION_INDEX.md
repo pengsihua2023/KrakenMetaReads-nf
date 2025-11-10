@@ -257,16 +257,22 @@ Update these documents:
 
 | Document | Size | Purpose | When to Read |
 |----------|------|---------|--------------|
-| **README_HYBRID.md** | ~460 lines | Complete reference | Always available |
-| **QUICK_START.md** | ~180 lines | Fast setup | First time |
-| **WORKFLOW_SUMMARY.md** | ~350 lines | Feature overview | Understanding workflow |
-| **FINAL_GUIDE.md** | ~280 lines | Best practices | Getting started |
+| **README_HYBRID.md** | ~550 lines | Complete reference | Always available |
+| **QUICK_START.md** | ~300 lines | Fast setup | First time |
+| **WORKFLOW_SUMMARY.md** | ~550 lines | Feature overview | Understanding workflow |
+| **FINAL_GUIDE.md** | ~430 lines | Best practices | Getting started |
 | **DNA_VS_RNA_VIRUSES.md** | ~340 lines | Limitations + alternatives | Planning experiments |
 | **VIRALFLYE_INFO.md** | ~260 lines | viralFlye details | Long-read virus work |
-| **LATEST_UPDATES.md** | ~400 lines | Version 3.0 changes | Current version info |
-| **DOCUMENTATION_INDEX.md** | This file | Find what you need | Navigation |
+| **LATEST_UPDATES.md** | ~630 lines | Version 3.0 changes | Current version info |
+| **DUAL_DATABASE_GUIDE.md** | ~430 lines | 🆕 RefSeq + RVDB integration | Advanced virus analysis |
+| **DOCUMENTATION_INDEX.md** | ~280 lines | Find what you need | Navigation |
 
-**Total documentation**: ~2,500 lines of comprehensive guidance! 📚
+**Scripts**:
+| File | Purpose |
+|------|---------|
+| **integrate_dual_databases.py** | 🆕 Integrate RefSeq + RVDB results |
+
+**Total documentation**: ~3,700+ lines of comprehensive guidance! 📚
 
 ---
 

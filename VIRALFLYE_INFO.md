@@ -2,11 +2,16 @@
 
 ## 🦠 什么是viralFlye？
 
-**viralFlye是从metaFlye组装结果中识别病毒contigs的后处理工具**，它：
+**viralFlye是从metaFlye组装结果中识别DNA病毒contigs的后处理工具**，它：
 - 从metaFlye的组装图（assembly graph）中提取病毒序列
-- 识别线性和环状病毒contigs
-- 基于覆盖度和长度过滤（默认：5kb-1Mb，>10x覆盖度）
-- 可选的病毒蛋白注释（使用Pfam HMM）
+- 识别线性和环状**DNA病毒**contigs（噬菌体、大型/小型DNA病毒）
+- 基于长度和完整性过滤（默认：≥2kb长度，≥50%完整性）
+- 使用Pfam HMM进行病毒蛋白注释（**必需**）
+
+**重要限制**：
+- ✅ 检测**DNA病毒**（噬菌体、疱疹病毒、痘病毒等）
+- ❌ **不能检测RNA病毒**（流感、冠状病毒等）→ 需要RNA测序
+- ❌ metaFlye是DNA组装器 → DNA测序数据中没有RNA病毒信息
 
 ## 🔬 正确的工作流程
 
@@ -201,10 +206,15 @@ viralFlye.py \
 
 ### 可调整参数（在config中）：
 
-- `viralflye_min_length = 5000` - 病毒contig最小长度
-- `viralflye_max_length = 1000000` - 病毒contig最大长度
-- `viralflye_min_coverage = 10` - 最小覆盖度阈值
-- `viralflye_hmm = null` - Pfam HMM文件路径（可选）
+- `viralflye_min_length = 2000` - 病毒contig最小长度（2kb，包含小型DNA病毒）
+- `viralflye_completeness = 0.5` - 完整性阈值（50%，确保高质量）
+- `viralflye_threads = 10` - CPU线程数
+- `viralflye_hmm = '/path/to/Pfam-A.hmm'` - Pfam HMM文件路径（**必需**）
+
+**注意**：
+- 降低`min_length`到2kb可以捕获小型DNA病毒（如Circoviridae）
+- `completeness`保持50%确保识别的是相对完整的病毒基因组
+- 环状contigs = 完整的病毒基因组（质量最高）⭐
 
 ## ⚙️ 资源配置
 
