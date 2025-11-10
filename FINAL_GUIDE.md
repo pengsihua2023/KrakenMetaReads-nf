@@ -1,165 +1,431 @@
-# 🎯 最终使用指南 - Hybrid Metagenome Workflow
+# 🎯 Final Usage Guide - Hybrid Metagenome Workflow
 
-## ✅ 已完成的工作
+Version 3.0 - Complete with Virus Consensus & viralFlye Integration
 
-### 创建的新文件（混合工作流）
+## ✅ What's Complete
 
-#### 核心文件：
-1. **metagenome_hybrid_workflow.nf** - 主工作流（支持短+长读长）
-2. **metagenome_hybrid_workflow.config** - 配置文件
-3. **run_hybrid_workflow.sh** - 运行脚本
+### New Capabilities (Version 3.0)
+1. ✨ **Virus Consensus Analysis** - High-confidence virus identification
+2. ✨ **viralFlye Integration** - Complete DNA viral genome identification
+3. ✨ **Three Contig Sets** - Multi-level viral analysis (metaFlye + linear + circular)
+4. ✨ **DNA vs RNA Awareness** - Clear documentation of limitations
+5. ✨ **Auto Dependency Resolution** - Python version, symlinks, containers
 
-#### 示例文件：
-4. **samplesheet_short.csv** - 短读长样本表模板
-5. **samplesheet_long.csv** - 长读长样本表模板
+### Core Features (All Versions)
+- ✅ Short-read + Long-read support
+- ✅ RPM/RPKM abundance for all assemblers
+- ✅ Kraken2 taxonomic classification
+- ✅ Automatic environment management
 
-#### 文档文件：
-6. **README_HYBRID.md** - 详细文档
-7. **QUICK_START.md** - 快速指南
-8. **WORKFLOW_SUMMARY.md** - 功能总结
+---
 
-### 保留的原文件（仅短读长）
-- **metagenome_assembly_classification_workflow_en.nf**
-- **metagenome_assembly_classification_en.config**
-- **run_metagenome_assembly_classification_en.sh**
+## 🚀 Quick Start (3 Steps)
 
-## 🚀 立即开始使用
+### Step 1: Choose Your Mode
 
-### 步骤1：准备samplesheet文件
+```bash
+# For short reads only (Illumina)
+sbatch run_short_only.sh
 
-#### 短读长样本 
-创建或编辑：`/scratch/sp96859/Meta-genome-data-analysis/Apptainer/yitiaolong/data/reads/samplesheet_short.csv`
+# For long reads only (Nanopore/PacBio)
+sbatch run_long_only.sh
 
+# For both (auto-detect)
+sbatch run_hybrid_workflow.sh
+```
+
+### Step 2: Prepare Samplesheets
+
+**Short reads**: `samplesheet_short.csv`
 ```csv
 sample,fastq_1,fastq_2
-sample1,/full/path/to/sample1_R1.fastq.gz,/full/path/to/sample1_R2.fastq.gz
-sample2,/full/path/to/sample2_R1.fastq.gz,/full/path/to/sample2_R2.fastq.gz
+sample1,/path/to/R1.fastq.gz,/path/to/R2.fastq.gz
 ```
 
-#### 长读长样本
-已存在：`/scratch/sp96859/Meta-genome-data-analysis/Apptainer/Contig-based-VirSorter2-DeepVirFinder/data/samplesheet_long.csv`
-
+**Long reads**: `samplesheet_long.csv`
 ```csv
 sample,fastq_long
-llnl_66d1047e,/scratch/sp96859/Meta-genome-data-analysis/Apptainer/Contig-based-VirSorter2-DeepVirFinder/data/llnl_66d1047e.fastq.gz
+sample1,/path/to/reads.fastq.gz
 ```
 
-### 步骤2：添加执行权限
+### Step 3: Wait for Results
 
+Check completion message in SLURM output.
+
+---
+
+## 📊 What You'll Get
+
+### Short-Read Results (results_short/)
+
+#### Standard Outputs:
+- ✅ Quality control reports (fastp)
+- ✅ Two assemblies (MEGAHIT + SPAdes)
+- ✅ RPM/RPKM for each assembler ⭐
+- ✅ Kraken2 classification for each
+
+#### 🆕 Enhanced Outputs:
+- ⭐ **Merged comparison** (MEGAHIT vs SPAdes)
+- ⭐⭐ **Virus consensus report** - High-confidence viruses only!
+
+**Key file**: `merged_reports/*_virus_consensus.txt`
+
+Example content:
+```
+Total viral classifications: 45
+  ✅ Consensus viruses (detected by BOTH): 28  ← Focus here!
+  ⚠️ SPAdes only: 12
+  ⚠️ MEGAHIT only: 5
+
+Consensus rate: 62.2%
+
+HIGH CONFIDENCE VIRUSES:
+Klebsiella phage ST147-VIM1phi7.1
+  SPAdes: 13 contigs
+  MEGAHIT: 7 contigs
+  Agreement: 0.54 ← Reliable!
+```
+
+### Long-Read Results (results_long/)
+
+#### Standard Outputs:
+- ✅ metaFlye assembly (all contigs)
+- ✅ RPM/RPKM for all contigs ⭐
+
+#### 🆕 Enhanced Outputs (viralFlye):
+- ⭐ **Set 1**: metaFlye all contigs (complete metagenome)
+- ⭐⭐ **Set 2**: viralFlye linear DNA viruses
+- ⭐⭐⭐ **Set 3**: viralFlye circular DNA viruses (complete genomes!)
+
+**Key directories**:
+- `viralflye/` - Original viral FASTA files
+- `abundance_viralflye_circular/` - Complete viral genomes ⭐⭐⭐
+
+Example result:
+```
+Circular Viral Contigs Summary
+Sample: llnl_66d1047e
+Total viral contigs: 1
+
+contig_1085
+  Length: 39,632 bp
+  RPKM: 25,232 (very high!)
+  Identity: Ralstonia phage RS138 (94.5% match)
+  Status: Complete circular genome ✅
+```
+
+---
+
+## 🦠 Understanding Virus Detection
+
+### What Gets Detected?
+
+**DNA Viruses** (✅ Detected):
+- Bacteriophages - Most common in environmental samples
+- Large DNA viruses - Herpesviruses, Poxviruses, Megaviruses
+- Small DNA viruses - Circoviridae (~2kb)
+
+**RNA Viruses** (❌ NOT Detected):
+- Influenza, Coronavirus, HIV, Norovirus, Dengue
+- **Why**: DNA-seq data doesn't contain RNA virus genomes
+- **Solution**: Use Nanopore RNA-seq
+
+**See**: `DNA_VS_RNA_VIRUSES.md` for complete explanation
+
+### Why 99% Unclassified?
+
+**If using viral database** (`kraken2_Viral_ref`):
+```
+Your sample: ~95% bacteria, ~1% viruses, ~4% others
+Kraken2 viral DB: Only has virus references
+
+Result:
+- Viruses: Classified ✅ (~1%)
+- Bacteria: Unclassified ❌ (~95%, DB doesn't have bacteria)
+- Others: Unclassified ❌ (~4%)
+→ Total unclassified: ~99% ← Normal!
+```
+
+**Solution**: Use standard Kraken2 database for complete classification
+
+---
+
+## 🔧 Configuration Files
+
+### metagenome_hybrid_workflow.config
+
+**Key settings to review**:
+
+```groovy
+// Paths
+input_short = 'samplesheet_short.csv'
+outdir_short = 'results_short'
+input_long = 'samplesheet_long.csv'
+outdir_long = 'results_long'
+
+// Kraken2 database
+kraken2_db = '/scratch/sp96859/.../kraken2_Viral_ref'  // Viral DB
+
+// Long-read platform
+long_read_type = 'nanopore'  // or 'pacbio', 'pacbio-hifi'
+
+// viralFlye (DNA virus identification)
+run_viralflye = true
+viralflye_hmm = '/scratch/sp96859/.../Pfam/Pfam-A.hmm'  // REQUIRED
+viralflye_min_length = 2000       // 2kb for small DNA viruses
+viralflye_completeness = 0.5      // 50% completeness threshold
+
+// Apptainer
+runOptions = '--no-mount /lscratch'  // For clusters without /lscratch
+```
+
+---
+
+## 🎓 Advanced Usage
+
+### Disable viralFlye (Long Reads)
+
+If you only want metaFlye without viral identification:
+
+Edit `metagenome_hybrid_workflow.config`:
+```groovy
+run_viralflye = false
+```
+
+### Change Kraken2 Database
+
+For complete microbiome (not just viruses):
+
+Edit run script:
 ```bash
-chmod +x run_hybrid_workflow.sh
+KRAKEN2_DB="/path/to/kraken2_standard"  # Bacteria + Viruses + Eukaryotes
 ```
 
-### 步骤3：提交作业
+### Adjust viralFlye Sensitivity
 
+For more viral contigs (lower quality threshold):
+
+Edit config:
+```groovy
+viralflye_min_length = 1500       // Lower to 1.5kb
+viralflye_completeness = 0.3      // Lower to 30%
+```
+
+**Warning**: May increase false positives
+
+---
+
+## 🛠️ Troubleshooting
+
+### Problem: viralFlye module not found
+
+**Solution**:
 ```bash
-sbatch run_hybrid_workflow.sh
+conda activate viralFlye_env
+cd /path/to/viralFlye
+pip install -e .
+python -c "from viralflye.main import main"  # Should not error
 ```
 
-## 📋 工作流会自动执行
+### Problem: No viruses detected by viralFlye
 
-### 对于短读长数据：
-1. ✅ fastp质控
-2. ✅ MEGAHIT拼接 → Bowtie2比对 → **计算RPM/RPKM** ⭐
-3. ✅ SPAdes拼接 → Bowtie2比对 → **计算RPM/RPKM** ⭐
-4. ✅ Kraken2分类（MEGAHIT和SPAdes分别）
-5. ✅ 生成MEGAHIT vs SPAdes对比报告
+**Possible reasons**:
+1. Low viral abundance in sample (common)
+2. No complete viral genomes (fragments only)
+3. Parameters too strict
 
-### 对于长读长数据：
-1. ✅ metaFlye拼接
-2. ✅ Minimap2比对 → **计算RPM/RPKM** ⭐
-3. ✅ Kraken2分类
-
-## 📊 结果位置
-
-- **短读长结果**: `results_short/`
-- **长读长结果**: `results_long/`
-
-## 🎨 丰度文件格式示例
-
-每个拼接器都会生成类似的文件：
-
-### *_abundance.txt
-```
-Contig_ID       Length(bp)  Mapped_Reads  RPM      RPKM
-k141_12345      2500        150           1250.5   500.2
-k141_67890      5000        300           2501.0   600.2
-NODE_1_length   3000        200           1667.2   555.7
-```
-
-### *_abundance_summary.txt
-```
-================================================================================
-MEGAHIT Contigs Abundance Summary
-================================================================================
-
-Sample: llnl_66ce4dde
-Total contigs: 50000
-Total mapped reads: 1,200,000
-Average contig length: 1250.50 bp
-Longest contig: 25,000 bp
-Shortest contig: 1,000 bp
-
-================================================================================
-```
-
-## 💡 高级使用
-
-### 只处理短读长
-在 `run_hybrid_workflow.sh` 中注释掉：
+**Check**:
 ```bash
-# SAMPLESHEET_LONG="/path/to/samplesheet_long.csv"
+# See if Kraken2 detected viruses in metaFlye
+grep -i virus results_long/kraken2_flye/*_report.txt
+
+# If yes → viralFlye parameters may be too strict
+# If no → Sample has low viral content
 ```
 
-### 只处理长读长
-在 `run_hybrid_workflow.sh` 中注释掉：
+### Problem: High percentage unclassified
+
+**If using viral database**: Normal! Bacteria aren't in the viral DB.
+
+**Solution**: Use standard Kraken2 database to classify bacteria too.
+
+### Problem: Pandas/numpy errors
+
+**Solution**: The workflow now auto-manages this with conda environments.
+
+If still occurs:
 ```bash
-# SAMPLESHEET_SHORT="/path/to/samplesheet_short.csv"
-```
-
-### 使用PacBio数据
-在命令行添加参数或修改config：
-```bash
---long_read_type pacbio-hifi
-```
-
-## ⚠️ 重要提示
-
-1. **首次运行需要下载容器镜像**，可能需要一些时间
-2. **确保Kraken2数据库路径正确**
-3. **SPAdes需要大内存**（512GB），确保节点有足够资源
-4. **长读长拼接耗时较长**（可能需要数天）
-
-## 🔍 监控和调试
-
-### 查看运行状态
-```bash
-# 查看SLURM输出
-cat Hybrid_Metagenome_*.out
-
-# 查看错误信息
-cat Hybrid_Metagenome_*.err
-
-# 查看Nextflow日志
-cat .nextflow.log
-```
-
-### 如果遇到问题
-```bash
-# 清理缓存重新运行
-rm -rf /scratch/sp96859/Meta-genome-data-analysis/conda_cache/
+rm -rf /scratch/sp96859/.../conda_cache/
 rm -rf work/
-sbatch run_hybrid_workflow.sh
+sbatch run_[your_script].sh
 ```
 
-## 🎊 完成！
+---
 
-您现在拥有一个完整的混合宏基因组分析工作流，能够：
-- ✨ 处理短读长（Illumina）和长读长（Nanopore/PacBio）数据
-- ✨ 为所有拼接器计算RPM和RPKM丰度
-- ✨ 进行物种分类
-- ✨ 生成详细的比较报告
-- ✨ 自动处理依赖问题
+## 📖 Recommended Workflow
 
-祝您分析顺利！🧬
+### For DNA Virus Discovery:
 
+1. **Start with long reads** (`run_long_only.sh`)
+   - Get complete viral genomes (viralFlye circular)
+   - High-quality, publication-ready
+
+2. **Validate with short reads** (`run_short_only.sh`)
+   - Check consensus viruses
+   - Agreement >0.5 = High confidence
+
+3. **Combine results**
+   - Long reads: Complete viral genomes
+   - Short reads: Validation + additional fragments
+
+### For Complete Microbiome Analysis:
+
+1. **Use standard Kraken2 database**
+   - See bacteria + viruses + eukaryotes
+
+2. **Run both short + long reads**
+   - Short: High resolution for abundant species
+   - Long: Complete genomes for novel species
+
+3. **Analyze separately**:
+   - Bacteria: From metaFlye Set 1 classification
+   - Viruses: From viralFlye Sets 2+3
+
+---
+
+## 🎊 Success Checklist
+
+After workflow completion:
+
+### Short Reads:
+- [ ] Quality control reports generated
+- [ ] MEGAHIT abundance calculated
+- [ ] SPAdes abundance calculated
+- [ ] Merged report created
+- [ ] **Virus consensus report generated** 🆕
+  - [ ] Consensus viruses listed
+  - [ ] Agreement ratios calculated
+
+### Long Reads:
+- [ ] metaFlye assembly completed
+- [ ] **viralFlye viral contigs identified** 🆕
+  - [ ] Linear viral FASTA exists
+  - [ ] Circular viral FASTA exists
+- [ ] Three abundance files created (all + linear + circular)
+- [ ] Three Kraken2 classifications completed
+
+---
+
+## 💡 Next Steps After Results
+
+### 1. Identify High-Confidence Viruses
+
+**Short reads**:
+```bash
+# Focus on consensus viruses
+cat results_short/merged_reports/*_virus_consensus.txt
+# Look for Agreement >0.5
+```
+
+**Long reads**:
+```bash
+# Focus on circular viruses (complete genomes)
+cat results_long/abundance_viralflye_circular/*_abundance.txt
+# High RPKM = Abundant viruses
+```
+
+### 2. Extract Viral Sequences
+
+For downstream analysis (gene annotation, phylogeny):
+
+```bash
+# Circular viral genomes (highest quality)
+cp results_long/viralflye/circulars_viralFlye.fasta my_viruses.fasta
+
+# Or specific contigs based on abundance
+# Filter by RPKM threshold, etc.
+```
+
+### 3. Functional Annotation
+
+```bash
+# Use Prokka or Pharokka for phage annotation
+prokka --kingdom Viruses my_viruses.fasta
+
+# Or BLAST against viral protein database
+```
+
+### 4. Validate Findings
+
+- Compare short-read consensus with long-read results
+- Check if same viruses appear in both platforms
+- High agreement = Very reliable discovery
+
+---
+
+## 📞 Support
+
+### Check Logs:
+```bash
+cat .nextflow.log               # Nextflow execution log
+cat Hybrid_Metagenome_*.out    # SLURM output
+cat Hybrid_Metagenome_*.err    # SLURM errors
+```
+
+### Inspect Failed Jobs:
+```bash
+cd work/xx/xxxxx...  # Work directory from error message
+cat .command.sh      # Executed command
+cat .command.out     # Command output
+cat .command.err     # Command errors
+```
+
+---
+
+## 🏆 What Makes This Workflow Special
+
+1. **Consensus validation** - Only short-read workflow with built-in consensus analysis
+2. **Complete viral genomes** - viralFlye identifies circular (complete) genomes
+3. **Three-tier analysis** - Multi-level viral investigation (all/linear/circular)
+4. **Publication ready** - High-confidence results suitable for scientific publication
+5. **Fully automated** - From FASTQ to publication-ready results
+6. **Clear limitations** - Explicit about DNA-only detection
+
+---
+
+## 🎯 Final Recommendations
+
+### For Phage Research:
+- ✅ Use long reads (`run_long_only.sh`)
+- ✅ Focus on viralFlye circular contigs
+- ✅ High RPKM circular viruses = Your discoveries!
+
+### For General Virology:
+- ✅ Use both short + long reads
+- ✅ Short reads: Consensus list
+- ✅ Long reads: Complete genomes
+- ✅ Cross-validate findings
+
+### For Microbiome Studies:
+- ✅ Use standard Kraken2 database
+- ✅ Analyze bacteria from Set 1 (metaFlye all contigs)
+- ✅ Study phage-host relationships
+
+### For RNA Viruses:
+- ⚠️ This workflow won't work
+- ✅ Use Nanopore RNA-seq instead
+- ✅ See `DNA_VS_RNA_VIRUSES.md` for alternatives
+
+---
+
+## 🎊 You're Ready!
+
+Everything is configured and documented. Just run:
+
+```bash
+sbatch run_long_only.sh   # or your chosen mode
+```
+
+And explore the results! 🧬✨
+
+**Happy virus hunting!** 🦠🔬

@@ -27,8 +27,13 @@ This workflow processes metagenome data from both Illumina (short-read) and Nano
 - **Assembly**: MEGAHIT + metaSPAdes (parallel)
 - **Mapping**: Bowtie2 (Apptainer container)
 - **Abundance**: RPM/RPKM for each contig ⭐
-- **Classification**: Kraken2
-- **Reports**: Merged MEGAHIT vs SPAdes comparison
+- **Classification**: Kraken2 for both assemblers
+- **Reports**: 
+  - Merged MEGAHIT vs SPAdes comparison
+  - **Virus Consensus Analysis** 🆕 ⭐
+    - Identifies viruses detected by BOTH assemblers (high confidence)
+    - Agreement scoring for reliability assessment
+    - Separates consensus vs single-assembler detections
 
 ### Long-Read Processing (Nanopore/PacBio) - DNA Sequencing
 - **Assembly**: metaFlye (general metagenome assembly)
@@ -185,8 +190,10 @@ results_short/
 │   ├── *_spades_classification.txt
 │   └── *_spades_report.txt
 └── merged_reports/             # Comparative analysis
-    ├── *_merged_report.txt
-    └── *_merged_report.csv
+    ├── *_merged_report.txt        # All taxa comparison
+    ├── *_merged_report.csv        # All taxa CSV
+    ├── *_virus_consensus.txt      # 🆕 Consensus virus analysis ⭐
+    └── *_virus_consensus.csv      # 🆕 Consensus virus detailed data
 ```
 
 ### Long-Read Results (`results_long/`)
@@ -318,6 +325,94 @@ The workflow automatically resolves the `libbz2.so.1.0` dependency issue:
 This applies to:
 - All abundance calculation processes (MEGAHIT, SPAdes, metaFlye, viralFlye)
 - Minimap2 alignment processes
+
+## Virus Consensus Analysis (Short Reads) 🆕
+
+### Overview
+
+The workflow automatically identifies **high-confidence viruses** by comparing MEGAHIT and SPAdes results. Viruses detected by **both assemblers** are more reliable than those detected by only one.
+
+### Output Files
+
+- `results_short/merged_reports/*_virus_consensus.txt` - Human-readable report
+- `results_short/merged_reports/*_virus_consensus.csv` - Detailed data
+
+### Virus Categories
+
+| Category | Reliability | Description |
+|----------|-------------|-------------|
+| **Consensus (Both)** ✅ | High | Detected by both MEGAHIT and SPAdes |
+| **SPAdes only** ⚠️ | Medium | Only detected by SPAdes (more sensitive) |
+| **MEGAHIT only** ⚠️ | Medium | Only detected by MEGAHIT (more conservative) |
+
+### Agreement Ratio
+
+For consensus viruses, the workflow calculates:
+
+```
+Agreement = min(SPAdes_count, MEGAHIT_count) / max(SPAdes_count, MEGAHIT_count)
+```
+
+**Interpretation**:
+- **>0.7**: Very high confidence (publication-ready)
+- **0.5-0.7**: High confidence (recommended threshold)
+- **0.3-0.5**: Medium confidence (consider validation)
+- **<0.3**: Low confidence (needs verification)
+
+### Example Output
+
+```
+================================================================================
+Viral Consensus Analysis - MEGAHIT vs SPAdes
+================================================================================
+
+Sample: llnl_66ce4dde
+
+Total viral classifications: 45
+  ✅ Consensus viruses (detected by BOTH): 28
+  ⚠️ SPAdes only: 12
+  ⚠️ MEGAHIT only: 5
+
+Consensus rate: 62.2%
+================================================================================
+
+HIGH CONFIDENCE VIRUSES (Consensus - Detected by Both Assemblers):
+--------------------------------------------------------------------------------
+
+Klebsiella phage ST147-VIM1phi7.1
+  Tax ID: 2510480
+  Rank: S1
+  SPAdes: 13 contigs (0.00%)
+  MEGAHIT: 7 contigs (0.01%)
+  Total: 20 contigs
+  Agreement: 0.54  ← High confidence!
+
+Hendrixvirinae
+  Tax ID: 2842527
+  Rank: C1
+  SPAdes: 37 contigs (0.00%)
+  MEGAHIT: 12 contigs (0.02%)
+  Total: 49 contigs
+  Agreement: 0.32  ← Medium confidence
+
+[More consensus viruses...]
+================================================================================
+```
+
+### Use Cases
+
+1. **Publication-ready virus list**: Focus on consensus viruses with Agreement >0.5
+2. **Validation**: Cross-check single-assembler detections
+3. **Quality control**: Identify potential false positives
+4. **Comparative analysis**: Understand assembler differences
+
+### Recommendations
+
+- ✅ **Use consensus viruses** (Agreement >0.5) for main conclusions
+- ⚠️ **Validate single-assembler viruses** with additional methods (PCR, BLAST)
+- 📊 **Report both categories** to show comprehensive analysis
+
+---
 
 ## viralFlye Integration 🦠
 

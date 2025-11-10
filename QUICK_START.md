@@ -1,126 +1,303 @@
-# Quick Start Guide - Hybrid Workflow
+# Quick Start Guide - Hybrid Metagenome Workflow
 
-## 文件说明
+Version 3.0 - With Virus Consensus Analysis
 
-### 新创建的文件：
-1. **metagenome_hybrid_workflow.nf** - 主工作流文件（支持短读长+长读长）
-2. **metagenome_hybrid_workflow.config** - 配置文件
-3. **run_hybrid_workflow.sh** - 运行脚本
-4. **samplesheet_short.csv** - 短读长样本表（示例）
-5. **samplesheet_long.csv** - 长读长样本表（示例）
+## 🚀 Three Running Modes
 
-### 原有文件（仍可使用）：
-- **metagenome_assembly_classification_workflow_en.nf** - 仅短读长工作流
-- **metagenome_assembly_classification_en.config** - 仅短读长配置
-- **run_metagenome_assembly_classification_en.sh** - 仅短读长运行脚本
+### Option 1: Short Reads Only (Illumina)
+```bash
+sbatch run_short_only.sh
+```
+- Requires: `samplesheet_short.csv`
+- Output: `results_short/`
+- Features: MEGAHIT + SPAdes + **Virus Consensus** ⭐
 
-## 快速使用步骤
+### Option 2: Long Reads Only (Nanopore/PacBio)
+```bash
+sbatch run_long_only.sh
+```
+- Requires: `samplesheet_long.csv` + `viralFlye_env`
+- Output: `results_long/`
+- Features: metaFlye + viralFlye + **3 Contig Sets** ⭐
 
-### 1. 准备samplesheet文件
+### Option 3: Both Short + Long Reads
+```bash
+sbatch run_hybrid_workflow.sh
+```
+- Auto-detects available samplesheets
+- Output: `results_short/` + `results_long/`
 
-#### 短读长数据 (samplesheet_short.csv)
-路径：`/scratch/sp96859/Meta-genome-data-analysis/Apptainer/yitiaolong/data/reads/samplesheet_short.csv`
+---
 
-格式：
+## 📁 Input Files
+
+### Short-Read Samplesheet (`samplesheet_short.csv`)
 ```csv
 sample,fastq_1,fastq_2
-sample1,/full/path/to/sample1_R1.fastq.gz,/full/path/to/sample1_R2.fastq.gz
+sample1,/path/to/sample1_R1.fastq.gz,/path/to/sample1_R2.fastq.gz
 ```
 
-#### 长读长数据 (samplesheet_long.csv)
-路径：`/scratch/sp96859/Meta-genome-data-analysis/Apptainer/Contig-based-VirSorter2-DeepVirFinder/data/samplesheet_long.csv`
+**Default location**: Current directory or  
+`/scratch/sp96859/Meta-genome-data-analysis/Apptainer/yitiaolong/data/reads/`
 
-格式：
+### Long-Read Samplesheet (`samplesheet_long.csv`)
 ```csv
 sample,fastq_long
-llnl_66d1047e,/scratch/sp96859/Meta-genome-data-analysis/Apptainer/Contig-based-VirSorter2-DeepVirFinder/data/llnl_66d1047e.fastq.gz
+sample1,/path/to/sample1.fastq.gz
 ```
 
-### 2. 添加执行权限
+**Default location**: Current directory or  
+`/scratch/sp96859/Meta-genome-data-analysis/Apptainer/Contig-based-VirSorter2-DeepVirFinder/data/`
 
-```bash
-chmod +x run_hybrid_workflow.sh
-```
+---
 
-### 3. 运行工作流
+## 📊 Output Structure
 
-```bash
-sbatch run_hybrid_workflow.sh
-```
+### Short Reads (`results_short/`)
 
-## 输出结果
-
-### 短读长结果 (results_short/)
 ```
 results_short/
-├── fastp/                     # 质控报告
-├── abundance_megahit/         # MEGAHIT RPM/RPKM ⭐
-├── abundance_spades/          # SPAdes RPM/RPKM ⭐
-├── kraken2_megahit/          # MEGAHIT分类
-├── kraken2_spades/           # SPAdes分类
-└── merged_reports/            # 合并报告
+├── fastp/                         # Quality control reports
+├── abundance_megahit/             # MEGAHIT RPM/RPKM ⭐
+├── abundance_spades/              # SPAdes RPM/RPKM ⭐
+├── kraken2_megahit/              # MEGAHIT classification
+├── kraken2_spades/               # SPAdes classification
+└── merged_reports/                # 🆕 Enhanced reports
+    ├── *_merged_report.csv       # All taxa comparison
+    └── *_virus_consensus.txt     # 🆕 Consensus virus analysis ⭐⭐
 ```
 
-### 长读长结果 (results_long/)
+### Long Reads (`results_long/`)
+
 ```
 results_long/
-├── abundance_flye/            # metaFlye RPM/RPKM ⭐
-└── kraken2_flye/             # Flye分类
+├── flye_assembly/                 # metaFlye assembly
+├── viralflye/                     # 🆕 viralFlye viral contigs ⭐
+│   ├── linears_viralFlye.fasta   # Linear DNA viruses
+│   └── circulars_viralFlye.fasta # Circular DNA viruses (complete)
+├── abundance_flye/                # Set 1: All contigs RPM/RPKM
+├── abundance_viralflye_linear/    # Set 2: Linear viruses RPM/RPKM ⭐
+├── abundance_viralflye_circular/  # Set 3: Circular viruses RPM/RPKM ⭐
+├── kraken2_flye/                  # All contigs classification
+├── kraken2_viralflye_linear/      # Linear viruses classification
+└── kraken2_viralflye_circular/    # Circular viruses classification
 ```
 
-## 高级选项
+---
 
-### 修改长读长平台类型
+## 🦠 Key Features
 
-在 `run_hybrid_workflow.sh` 中添加参数：
+### 1. **Virus Consensus Analysis** (Short Reads) 🆕
+
+Identifies viruses detected by **BOTH** assemblers:
+- ✅ **Consensus viruses** (High confidence) - Detected by both
+- ⚠️ **SPAdes only** (Medium confidence)
+- ⚠️ **MEGAHIT only** (Medium confidence)
+
+**Agreement score**: Measures consistency between assemblers  
+→ Higher agreement = More reliable
+
+**Output**: `results_short/merged_reports/*_virus_consensus.txt`
+
+### 2. **Three Contig Sets** (Long Reads) 🆕
+
+#### Set 1: metaFlye All Contigs
+- All metagenome contigs (bacteria + viruses + eukaryotes)
+- Complete microbiome view
+
+#### Set 2: viralFlye Linear Viruses
+- Linear DNA viral contigs
+- Filtered: ≥2kb, ≥50% completeness
+
+#### Set 3: viralFlye Circular Viruses ⭐
+- Circular DNA viral genomes
+- **Complete viral genomes** (highest quality)
+- Example: Bacteriophages
+
+**Each set**: Independent RPM/RPKM + Kraken2 classification
+
+### 3. **RPM/RPKM Abundance** ⭐
+
+All assemblers calculate:
+- **RPM**: Reads Per Million
+- **RPKM**: Reads Per Kilobase per Million
+
+Every contig gets abundance metrics!
+
+---
+
+## ⚠️ Important Notes
+
+### DNA vs RNA Viruses
+
+**This workflow detects DNA viruses only:**
+- ✅ Phages, Herpesviruses, Poxviruses, Megaviruses
+- ❌ **NOT** Influenza, Coronavirus, HIV (RNA viruses)
+
+**For RNA viruses**: Use Nanopore RNA-seq + RNA assembly tools
+
+See: `DNA_VS_RNA_VIRUSES.md` for details
+
+### Kraken2 Database
+
+**Current setup**: Viral reference database (`kraken2_Viral_ref`)
+- Contains: Virus genomes only
+- Result: Bacteria appear as "Unclassified" (99%)
+
+**Alternative**: Use standard database for complete microbiome classification
+
+---
+
+## 🔧 Prerequisites
+
+### Required:
+- ✅ Nextflow (installed in `nextflow_env`)
+- ✅ Apptainer/Singularity
+- ✅ Conda/Mamba
+- ✅ SLURM cluster
+
+### For Long Reads:
+- ✅ `viralFlye_env` conda environment with viralFlye installed
+
 ```bash
---long_read_type pacbio         # For PacBio CLR
---long_read_type pacbio-hifi    # For PacBio HiFi
---long_read_type nanopore       # For Nanopore (default)
+# Verify viralFlye
+conda activate viralFlye_env
+python -c "from viralflye.main import main; print('OK')"
 ```
 
-### 只运行短读长分析
-
-编辑 `run_hybrid_workflow.sh`，注释掉长读长samplesheet：
+### Pfam Database (Required for viralFlye):
 ```bash
-# SAMPLESHEET_LONG="/path/to/samplesheet_long.csv"
+# Set in metagenome_hybrid_workflow.config
+viralflye_hmm = '/scratch/sp96859/.../Pfam/Pfam-A.hmm'
 ```
 
-### 只运行长读长分析
+---
 
-编辑 `run_hybrid_workflow.sh`，注释掉短读长samplesheet：
+## 📈 Resource Requirements
+
+### Short Reads:
+- **MEGAHIT**: 16 CPUs, 64 GB, 12h
+- **SPAdes**: 32 CPUs, 512 GB, 48h ⚠️ High memory!
+- **Bowtie2**: 16 CPUs, 32 GB, 8h each
+- **Kraken2**: 16 CPUs, 48 GB, 8h each
+
+### Long Reads:
+- **metaFlye**: 32 CPUs, 128 GB, 72h
+- **viralFlye**: 16 CPUs, 64 GB, 12h
+- **Minimap2**: 16 CPUs, 32 GB, 8h each
+- **Kraken2**: 16 CPUs, 48 GB, 8h each
+
+---
+
+## 🔍 Quick Results Check
+
+### View consensus viruses (Short reads):
 ```bash
-# SAMPLESHEET_SHORT="/path/to/samplesheet_short.csv"
+cat results_short/merged_reports/*_virus_consensus.txt
 ```
 
-## 丰度计算说明
-
-- **RPM** (Reads Per Million) = (contig的reads数 / 总mapped reads数) × 10^6
-- **RPKM** (Reads Per Kilobase per Million) = (contig的reads数 / (contig长度/1000)) / (总mapped reads数 / 10^6)
-
-所有拼接器（MEGAHIT、SPAdes、metaFlye）都会生成独立的RPM/RPKM结果。
-
-## 故障排查
-
-### 如果遇到依赖问题：
-
+### View circular viruses (Long reads):
 ```bash
-# 清理缓存
-rm -rf /scratch/sp96859/Meta-genome-data-analysis/conda_cache/
-rm -rf work/
-
-# 重新运行
-sbatch run_hybrid_workflow.sh
+cat results_long/abundance_viralflye_circular/*_summary.txt
 ```
 
-### 查看详细日志：
-
+### View all viral abundance:
 ```bash
-# 查看Nextflow日志
-cat .nextflow.log
+# Short reads - SPAdes
+head -20 results_short/abundance_spades/*_abundance.txt
 
-# 查看SLURM日志
-cat Hybrid_Metagenome_*.out
-cat Hybrid_Metagenome_*.err
+# Long reads - Circular viruses
+head -20 results_long/abundance_viralflye_circular/*_abundance.txt
 ```
 
+---
+
+## 🎯 Platform Selection
+
+### Nanopore (Default):
+```bash
+# No changes needed
+sbatch run_long_only.sh
+```
+
+### PacBio CLR:
+Edit `metagenome_hybrid_workflow.config`:
+```groovy
+long_read_type = 'pacbio'
+```
+
+### PacBio HiFi:
+Edit `metagenome_hybrid_workflow.config`:
+```groovy
+long_read_type = 'pacbio-hifi'
+```
+
+---
+
+## 🛠️ Troubleshooting
+
+### Issue: Dependency errors
+```bash
+rm -rf work/ /scratch/sp96859/.../conda_cache/
+sbatch run_[short/long/hybrid]_workflow.sh
+```
+
+### Issue: viralFlye module not found
+```bash
+conda activate viralFlye_env
+cd /path/to/viralFlye
+pip install -e .
+python -c "from viralflye.main import main"  # Should not error
+```
+
+### Issue: Check failed job
+```bash
+# Find work directory from error message
+cd work/xx/xxxxxx...
+cat .command.out  # Check output
+cat .command.err  # Check errors
+```
+
+---
+
+## 📚 Documentation
+
+| File | Content |
+|------|---------|
+| `README_HYBRID.md` | Complete documentation |
+| `QUICK_START.md` | This guide |
+| `DNA_VS_RNA_VIRUSES.md` | DNA vs RNA virus detection |
+| `VIRALFLYE_INFO.md` | viralFlye integration details |
+
+---
+
+## ✅ Success Indicators
+
+After completion, you should see:
+
+### Short Reads:
+```
+✅ MEGAHIT abundance: N files
+✅ SPAdes abundance: N files
+✅ Merged reports: N files
+✅ Virus consensus analysis: N files ⭐ (NEW!)
+```
+
+### Long Reads:
+```
+✅ metaFlye abundance: N files
+✅ viralFlye linear viral abundance: N files ⭐
+✅ viralFlye circular viral abundance: N files ⭐
+✅ viralFlye identified viral contigs ⭐ (NEW!)
+```
+
+---
+
+## 🎊 That's It!
+
+Three simple steps:
+1. Prepare samplesheets
+2. Choose running mode
+3. Submit job
+
+The workflow handles everything else automatically! 🧬✨
