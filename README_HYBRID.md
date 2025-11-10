@@ -58,11 +58,12 @@ This workflow processes metagenome data from both Illumina (short-read) and Nano
 
 ### Dependency Management
 - ✅ **Automatic conda environments**: Nextflow creates tool-specific environments
-  - fastp, Kraken2, Minimap2, Samtools, viralFlye, Python/Biopython
+  - fastp, Kraken2, Minimap2, Samtools, Python/Biopython
+- ✅ **Pre-installed viralFlye**: Uses existing `viralFlye_env` conda environment 🦠
 - ✅ **Automatic containers**: Nextflow pulls required containers
   - MEGAHIT, SPAdes, metaFlye, Bowtie2
 - ✅ **Automatic symlinks**: Resolves libbz2.so.1.0 dependency automatically
-- ✅ **No manual installation needed**: All tools auto-downloaded on first run
+- ✅ **Minimal manual setup**: Only viralFlye needs pre-installation, all other tools auto-downloaded
 
 ## Input Files
 
@@ -265,16 +266,34 @@ This automatically adjusts:
 
 ## Requirements
 
+### System Requirements
 - **Nextflow** >= 21.04 (installed in `nextflow_env`)
 - **Apptainer/Singularity** (for containers)
 - **Conda/Mamba** (for tool environments)
 - **SLURM** cluster environment
 
-### Tool Installation
-✅ **No manual installation needed!**
-- All bioinformatics tools are automatically installed by Nextflow
-- Conda creates isolated environments for each tool
-- Containers are automatically pulled from quay.io
+### Pre-installed Tools (Required)
+- **viralFlye**: Must be pre-installed in `viralFlye_env` conda environment 🦠
+
+To install viralFlye:
+```bash
+# Create and activate viralFlye environment
+conda create -n viralFlye_env python=3.8
+conda activate viralFlye_env
+
+# Install viralFlye from GitHub
+git clone https://github.com/Dmitry-Antipov/viralFlye.git
+cd viralFlye
+pip install -r requirements.txt
+
+# Verify installation
+viralFlye.py --help
+```
+
+### Auto-installed Tools
+✅ **All other tools are automatically managed by Nextflow:**
+- Conda creates isolated environments: fastp, Kraken2, Minimap2, Samtools, Python/Biopython
+- Containers are automatically pulled: MEGAHIT, SPAdes, metaFlye, Bowtie2
 
 ## Dependency Resolution
 
@@ -297,6 +316,8 @@ viralFlye is a **post-processing tool** that identifies viral contigs from metaF
 - Identifies linear and circular viral genomes
 - Filters by coverage (>10x) and length (5kb-1Mb)
 - Optional viral protein annotation using Pfam HMM
+
+**Note**: viralFlye must be pre-installed in `viralFlye_env` conda environment (not available in standard conda channels)
 
 ### Workflow Strategy
 ```
