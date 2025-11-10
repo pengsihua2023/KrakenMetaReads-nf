@@ -147,8 +147,12 @@ if [ $WORKFLOW_EXIT_CODE -eq 0 ]; then
         fi
         
         if [ -d "results_short/merged_reports" ]; then
-            MERGED=$(find results_short/merged_reports -name "*.csv" 2>/dev/null | wc -l)
+            MERGED=$(find results_short/merged_reports -name "*_merged_report.csv" 2>/dev/null | wc -l)
+            CONSENSUS=$(find results_short/merged_reports -name "*_virus_consensus.txt" 2>/dev/null | wc -l)
             echo "  ✅ Merged reports: $MERGED files"
+            if [ "$CONSENSUS" -gt 0 ]; then
+                echo "  ✅ Virus consensus analysis: $CONSENSUS files ⭐"
+            fi
         fi
         
         echo ""

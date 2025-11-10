@@ -662,6 +662,8 @@ process MERGE_KRAKEN2_REPORTS_SHORT {
     output:
     tuple val(sample), path("${sample}_merged_report.txt"), emit: merged_report
     path("${sample}_merged_report.csv"), emit: merged_csv
+    path("${sample}_virus_consensus.txt"), emit: virus_consensus_txt
+    path("${sample}_virus_consensus.csv"), emit: virus_consensus_csv
     
     script:
     """
@@ -716,6 +718,78 @@ process MERGE_KRAKEN2_REPORTS_SHORT {
     output_df['total_reads'] = output_df['spades_reads'] + output_df['megahit_reads']
     output_df = output_df.sort_values('total_reads', ascending=False)
     output_df.to_csv("${sample}_merged_report.csv", index=False)
+    
+    # === Consensus Virus Analysis ===
+    # Filter only viral classifications (excluding unclassified and root)
+    virus_df = output_df[
+        (output_df['name'].str.contains('virus|phage|viral|Virus|Phage|Viral', case=False, na=False)) &
+        (~output_df['name'].str.contains('unclassified', case=False, na=False)) &
+        (output_df['tax_id'] != '0')
+    ].copy()
+    
+    if len(virus_df) > 0:
+        # Categorize viruses based on detection in assemblers
+        virus_df['detection'] = 'Unknown'
+        virus_df.loc[(virus_df['spades_reads'] > 0) & (virus_df['megahit_reads'] > 0), 'detection'] = 'Consensus (Both)'
+        virus_df.loc[(virus_df['spades_reads'] > 0) & (virus_df['megahit_reads'] == 0), 'detection'] = 'SPAdes only'
+        virus_df.loc[(virus_df['spades_reads'] == 0) & (virus_df['megahit_reads'] > 0), 'detection'] = 'MEGAHIT only'
+        
+        # Calculate agreement for consensus viruses
+        consensus = virus_df[virus_df['detection'] == 'Consensus (Both)'].copy()
+        if len(consensus) > 0:
+            consensus['agreement_ratio'] = consensus.apply(
+                lambda row: min(row['spades_reads'], row['megahit_reads']) / max(row['spades_reads'], row['megahit_reads'])
+                if max(row['spades_reads'], row['megahit_reads']) > 0 else 0,
+                axis=1
+            )
+        
+        # Save virus consensus report
+        with open("${sample}_virus_consensus.txt", 'w') as f:
+            f.write("="*80 + "\\n")
+            f.write("Viral Consensus Analysis - MEGAHIT vs SPAdes\\n")
+            f.write("="*80 + "\\n\\n")
+            f.write(f"Sample: ${sample}\\n\\n")
+            
+            consensus_count = len(virus_df[virus_df['detection'] == 'Consensus (Both)'])
+            spades_only_count = len(virus_df[virus_df['detection'] == 'SPAdes only'])
+            megahit_only_count = len(virus_df[virus_df['detection'] == 'MEGAHIT only'])
+            
+            f.write(f"Total viral classifications: {len(virus_df)}\\n")
+            f.write(f"  ✅ Consensus viruses (detected by BOTH): {consensus_count}\\n")
+            f.write(f"  ⚠️  SPAdes only: {spades_only_count}\\n")
+            f.write(f"  ⚠️  MEGAHIT only: {megahit_only_count}\\n")
+            f.write(f"\\nConsensus rate: {consensus_count/len(virus_df)*100:.1f}%\\n")
+            f.write("="*80 + "\\n\\n")
+            
+            if len(consensus) > 0:
+                f.write("HIGH CONFIDENCE VIRUSES (Consensus - Detected by Both Assemblers):\\n")
+                f.write("-"*80 + "\\n")
+                for idx, row in consensus.sort_values('total_reads', ascending=False).iterrows():
+                    f.write(f"\\n{row['name']}\\n")
+                    f.write(f"  Tax ID: {row['tax_id']}\\n")
+                    f.write(f"  Rank: {row['rank']}\\n")
+                    f.write(f"  SPAdes: {int(row['spades_reads'])} contigs ({row['spades_percent']:.2f}%)\\n")
+                    f.write(f"  MEGAHIT: {int(row['megahit_reads'])} contigs ({row['megahit_percent']:.2f}%)\\n")
+                    f.write(f"  Total: {int(row['total_reads'])} contigs\\n")
+                    f.write(f"  Agreement: {row['agreement_ratio']:.2f}\\n")
+                f.write("\\n" + "="*80 + "\\n")
+        
+        # Save detailed CSV
+        virus_df_out = virus_df[['tax_id', 'rank', 'name', 'spades_reads', 'megahit_reads', 
+                                  'total_reads', 'detection']].copy()
+        if 'agreement_ratio' in consensus.columns and len(consensus) > 0:
+            virus_df_out = virus_df_out.merge(
+                consensus[['tax_id', 'agreement_ratio']], 
+                on='tax_id', 
+                how='left'
+            )
+        virus_df_out = virus_df_out.sort_values(['detection', 'total_reads'], ascending=[True, False])
+        virus_df_out.to_csv("${sample}_virus_consensus.csv", index=False)
+    else:
+        # No viruses found
+        with open("${sample}_virus_consensus.txt", 'w') as f:
+            f.write("No viral classifications found in either assembler.\\n")
+        pd.DataFrame().to_csv("${sample}_virus_consensus.csv", index=False)
     """
 }
 
