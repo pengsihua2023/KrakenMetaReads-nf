@@ -302,11 +302,11 @@ results_viral_long/
 │   ├── sample2_abundance.tsv
 │   ├── all_samples_abundance_summary.tsv
 │   └── top_viruses_summary.tsv
-├── abundance_viralflye_linear/       # Abundance metrics for ViralFlye linear contigs
-│   ├── sample1_abundance.tsv
-│   ├── sample2_abundance.tsv
-│   ├── all_samples_abundance_summary.tsv
-│   └── top_viruses_summary.tsv
+└── abundance_viralflye_linear/       # Abundance metrics for ViralFlye linear contigs
+    ├── sample1_abundance.tsv
+    ├── sample2_abundance.tsv
+    ├── all_samples_abundance_summary.tsv
+    └── top_viruses_summary.tsv
 ```
 
 **Note**: 
@@ -477,4 +477,5 @@ If you use this workflow in your research, please cite:
 ---
 
 **Note**: This workflow is designed for viral metagenomic analysis. For broader taxonomic profiling including bacteria, archaea, and eukaryotes, consider using a comprehensive database instead of a viral-only database.
+
 
