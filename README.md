@@ -18,9 +18,12 @@ A comprehensive Nextflow workflow for viral metagenomic classification and abund
 ## Features
 
 - **Dual Sequencing Support**: Optimized workflows for both short-read (Illumina) and long-read (Nanopore/PacBio) data
-- **Automated Classification**: Uses Kraken2 for fast and accurate taxonomic classification
+- **Assembly-Based Analysis**: 
+  - Short-read: MEGAHIT and SPAdes for metagenomic assembly
+  - Long-read: Flye and ViralFlye for long-read assembly (with circular/linear distinction)
+- **Automated Classification**: Uses Kraken2 for fast and accurate taxonomic classification on assembled contigs
 - **Abundance Quantification**: 
-  - Short-read: Kraken2 + Bracken statistical correction
+  - Short-read: Kraken2 + Bracken statistical correction (if available)
   - Long-read: Direct extraction from Kraken2 reports (Bracken not needed)
 - **Multiple Metrics**: Calculates both RPM and RPKM for comprehensive abundance analysis
 - **Batch Processing**: Automated batch processing of multiple samples
@@ -196,35 +199,54 @@ bash batch_calculate_abundance_longread_en.sh results_viral_long
 
 #### Short-Read Data
 
+**For MEGAHIT assemblies:**
 ```bash
-# Files may be in subdirectories or directly in tool directories
-# The script will search both locations automatically
-python3 calculate_abundance_en.py \
-  --bracken results_viral_short/bracken/sample1/sample1_bracken.tsv \
-  --kraken results_viral_short/kraken2/sample1/sample1.report \
-  --output sample1_abundance.tsv
-
-# Or if files are directly in tool directories:
+# Note: Short-read data may use Bracken if available, or calculate directly from Kraken2
+# For MEGAHIT assembly results
 python3 calculate_abundance_en.py \
   --bracken results_viral_short/bracken/sample1_bracken.tsv \
-  --kraken results_viral_short/kraken2/sample1.report \
-  --output sample1_abundance.tsv
+  --kraken results_viral_short/kraken2_megahit/sample1.report \
+  --output results_viral_short/abundance_megahit/sample1_abundance.tsv
+
+# If Bracken is not available, use long-read script method:
+python3 calculate_abundance_longread_en.py \
+  --kraken results_viral_short/kraken2_megahit/sample1.report \
+  --output results_viral_short/abundance_megahit/sample1_abundance.tsv \
+  --level S
+```
+
+**For SPAdes assemblies:**
+```bash
+python3 calculate_abundance_en.py \
+  --bracken results_viral_short/bracken/sample1_bracken.tsv \
+  --kraken results_viral_short/kraken2_spades/sample1.report \
+  --output results_viral_short/abundance_spades/sample1_abundance.tsv
 ```
 
 #### Long-Read Data
 
+**For Flye assemblies:**
 ```bash
 # Note: Long-read data does NOT use Bracken
-# Files may be in subdirectories or directly in tool directories
 python3 calculate_abundance_longread_en.py \
-  --kraken results_viral_long/kraken2/sample1/sample1.report \
-  --output sample1_abundance.tsv \
+  --kraken results_viral_long/kraken2_flye/sample1.report \
+  --output results_viral_long/abundance_flye/sample1_abundance.tsv \
   --level S
+```
 
-# Or if files are directly in tool directories:
+**For ViralFlye circular contigs:**
+```bash
 python3 calculate_abundance_longread_en.py \
-  --kraken results_viral_long/kraken2/sample1.report \
-  --output sample1_abundance.tsv \
+  --kraken results_viral_long/kraken2_viralflye_circular/sample1.report \
+  --output results_viral_long/abundance_viralflye_circular/sample1_abundance.tsv \
+  --level S
+```
+
+**For ViralFlye linear contigs:**
+```bash
+python3 calculate_abundance_longread_en.py \
+  --kraken results_viral_long/kraken2_viralflye_linear/sample1.report \
+  --output results_viral_long/abundance_viralflye_linear/sample1_abundance.tsv \
   --level S
 ```
 
@@ -234,49 +256,22 @@ python3 calculate_abundance_longread_en.py \
 
 ```
 results_viral_short/
-├── kraken2/                          # Kraken2 classification results
-│   ├── sample1/                      # Sample-specific subdirectory (may exist)
-│   │   └── sample1.report            # or sample1.kraken2.report.txt
-│   ├── sample2/
-│   │   └── sample2.report
-│   ├── sample1.report                # Or files directly in kraken2/
-│   └── sample2.report
-├── bracken/                          # Bracken abundance estimates (short-read only)
-│   ├── sample1/                      # Sample-specific subdirectory (may exist)
-│   │   └── sample1_bracken.tsv       # or sample1.bracken_species.tsv
-│   ├── sample2/
-│   │   └── sample2_bracken.tsv
-│   ├── sample1_bracken.tsv           # Or files directly in bracken/
-│   └── sample2_bracken.tsv
-├── abundance/                        # Calculated abundance metrics (created by scripts)
+├── fastp/                            # Quality control and preprocessing (Fastp)
+├── kraken2_megahit/                  # Kraken2 classification on MEGAHIT assemblies
+│   └── [sample reports and classification files]
+├── kraken2_spades/                   # Kraken2 classification on SPAdes assemblies
+│   └── [sample reports and classification files]
+├── abundance_megahit/                # Abundance metrics for MEGAHIT assemblies
 │   ├── sample1_abundance.tsv
 │   ├── sample2_abundance.tsv
 │   ├── all_samples_abundance_summary.tsv
 │   └── top_viruses_summary.tsv
-├── fastqc/                           # Quality control reports
-├── multiqc/                          # MultiQC quality control report
-│   └── multiqc_report.html
-├── pipeline_info/                    # Pipeline execution metadata
-└── [other tool outputs]/             # Additional tool outputs if enabled
-```
-
-### Long-Read Data Structure
-
-```
-results_viral_long/
-├── kraken2/                          # Kraken2 classification results
-│   ├── sample1/                      # Sample-specific subdirectory (may exist)
-│   │   └── sample1.report            # or sample1.kraken2.report.txt
-│   ├── sample2/
-│   │   └── sample2.report
-│   ├── sample1.report                # Or files directly in kraken2/
-│   └── sample2.report
-├── abundance/                        # Calculated abundance metrics (created by scripts)
+├── abundance_spades/                 # Abundance metrics for SPAdes assemblies
 │   ├── sample1_abundance.tsv
 │   ├── sample2_abundance.tsv
 │   ├── all_samples_abundance_summary.tsv
 │   └── top_viruses_summary.tsv
-├── nanoplot/                         # Long-read quality control (Nanoplot)
+├── merged_reports/                   # Merged classification reports
 ├── multiqc/                          # MultiQC quality control report
 │   └── multiqc_report.html
 ├── pipeline_info/                    # Pipeline execution metadata
@@ -284,8 +279,49 @@ results_viral_long/
 ```
 
 **Note**: 
-- nf-core/taxprofiler may organize files in sample-specific subdirectories or directly in tool directories
-- The batch scripts automatically search both locations
+- Short-read data uses multiple assembly tools (MEGAHIT and SPAdes)
+- Kraken2 classification is performed on each assembly separately
+- Abundance calculations are generated for each assembly method
+- The `merged_reports/` directory contains consolidated results
+
+### Long-Read Data Structure
+
+```
+results_viral_long/
+├── flye_assembly/                    # Flye assembly results
+├── viralflye/                        # ViralFlye assembly results
+├── kraken2_flye/                     # Kraken2 classification on Flye assemblies
+│   └── [sample reports and classification files]
+├── kraken2_viralflye_circular/       # Kraken2 classification on ViralFlye circular contigs
+│   └── [sample reports and classification files]
+├── kraken2_viralflye_linear/         # Kraken2 classification on ViralFlye linear contigs
+│   └── [sample reports and classification files]
+├── abundance_flye/                   # Abundance metrics for Flye assemblies
+│   ├── sample1_abundance.tsv
+│   ├── sample2_abundance.tsv
+│   ├── all_samples_abundance_summary.tsv
+│   └── top_viruses_summary.tsv
+├── abundance_viralflye_circular/     # Abundance metrics for ViralFlye circular contigs
+│   ├── sample1_abundance.tsv
+│   ├── sample2_abundance.tsv
+│   ├── all_samples_abundance_summary.tsv
+│   └── top_viruses_summary.tsv
+├── abundance_viralflye_linear/       # Abundance metrics for ViralFlye linear contigs
+│   ├── sample1_abundance.tsv
+│   ├── sample2_abundance.tsv
+│   ├── all_samples_abundance_summary.tsv
+│   └── top_viruses_summary.tsv
+├── multiqc/                          # MultiQC quality control report
+│   └── multiqc_report.html
+├── pipeline_info/                    # Pipeline execution metadata
+└── [other tool outputs]/             # Additional tool outputs if enabled
+```
+
+**Note**: 
+- Long-read data uses Flye and ViralFlye for assembly
+- ViralFlye distinguishes between circular and linear viral contigs
+- Kraken2 classification is performed on each assembly type separately
+- Abundance calculations are generated for each assembly method and contig type
 - **Bracken directory is NOT present for long-read data** (Bracken is designed for short reads only)
 
 ### Abundance Output Format
@@ -324,18 +360,28 @@ RPKM = assigned_reads / (genome_length_kb × total_reads_million)
 ### Short-Read vs Long-Read
 
 **Short-Read (Illumina)**:
-- Uses Kraken2 for classification
-- Applies Bracken statistical correction to improve abundance estimates
+- **Assembly tools**: Uses MEGAHIT and SPAdes for metagenomic assembly
+- Uses Kraken2 for classification on assembled contigs
+- Applies Bracken statistical correction to improve abundance estimates (if available)
 - Bracken is designed for short reads (50-300 bp)
-- **Output structure**: Contains both `kraken2/` and `bracken/` directories
-- **Abundance calculation**: Uses both Kraken2 reports and Bracken output files
-- **QC tools**: FastQC for quality control
+- **Output structure**: 
+  - `kraken2_megahit/` and `kraken2_spades/` for classification results
+  - `abundance_megahit/` and `abundance_spades/` for abundance metrics
+  - `fastp/` for quality control and preprocessing
+  - `merged_reports/` for consolidated results
+- **Abundance calculation**: Uses both Kraken2 reports and Bracken output files (or Kraken2 only if Bracken unavailable)
+- **QC tools**: Fastp for quality control
 
 **Long-Read (Nanopore/PacBio)**:
-- Uses Kraken2 for classification
+- **Assembly tools**: Uses Flye and ViralFlye for long-read assembly
+- ViralFlye distinguishes between circular and linear viral contigs
+- Uses Kraken2 for classification on assembled contigs
 - No Bracken correction needed (long reads contain more information)
 - Direct extraction from Kraken2 reports is sufficient
-- **Output structure**: Contains only `kraken2/` directory (no `bracken/` directory)
+- **Output structure**: 
+  - `kraken2_flye/`, `kraken2_viralflye_circular/`, `kraken2_viralflye_linear/` for classification results
+  - `abundance_flye/`, `abundance_viralflye_circular/`, `abundance_viralflye_linear/` for abundance metrics
+  - `flye_assembly/` and `viralflye/` for assembly results
 - **Abundance calculation**: Uses only Kraken2 report files
 - **QC tools**: Nanoplot for long-read quality control
 
