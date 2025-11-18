@@ -472,13 +472,14 @@ MIT License.
 
 ## Contact
 
-- 📧 Email: sihua.peng@uga.edu, Workflow code programmer  
-- 📧 Email: justin.bahl@uga.edu, Project supervisor  
-- 💻 Suggestion: [Click here!](https://github.com/pengsihua2023/rvdb-viral-metagenome-nf/issues/new)
+- Email: sihua.peng@uga.edu, Workflow code programmer  
+- Email: justin.bahl@uga.edu, Project supervisor  
+- Suggestion: [Click here!](https://github.com/pengsihua2023/rvdb-viral-metagenome-nf/issues/new)
 
 ---
 
 **Note**: This workflow is designed for viral metagenomic analysis. For broader taxonomic profiling including bacteria, archaea, and eukaryotes, consider using a comprehensive database instead of a viral-only database.
+
 
 
 
