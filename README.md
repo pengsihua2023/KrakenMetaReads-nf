@@ -28,7 +28,7 @@ A comprehensive Nextflow workflow for viral metagenomic classification and abund
 - **Multiple Metrics**: Calculates both RPM and RPKM for comprehensive abundance analysis
 - **Batch Processing**: Automated batch processing of multiple samples
 - **Containerized**: Uses Apptainer/Singularity for reproducible analysis
-- **Quality Control**: Integrated QC steps with MultiQC reporting
+- **Quality Control**: Integrated QC steps (Fastp for short-read, Nanoplot for long-read)
 - **Standardized Output**: Generates BIOM format files for downstream analysis
 
 ## Requirements
@@ -271,11 +271,7 @@ results_viral_short/
 │   ├── sample2_abundance.tsv
 │   ├── all_samples_abundance_summary.tsv
 │   └── top_viruses_summary.tsv
-├── merged_reports/                   # Merged classification reports
-├── multiqc/                          # MultiQC quality control report
-│   └── multiqc_report.html
-├── pipeline_info/                    # Pipeline execution metadata
-└── [other tool outputs]/             # Additional tool outputs if enabled
+└── merged_reports/                   # Merged classification reports
 ```
 
 **Note**: 
@@ -311,10 +307,6 @@ results_viral_long/
 │   ├── sample2_abundance.tsv
 │   ├── all_samples_abundance_summary.tsv
 │   └── top_viruses_summary.tsv
-├── multiqc/                          # MultiQC quality control report
-│   └── multiqc_report.html
-├── pipeline_info/                    # Pipeline execution metadata
-└── [other tool outputs]/             # Additional tool outputs if enabled
 ```
 
 **Note**: 
@@ -455,8 +447,8 @@ conda install pandas
 ### Getting Help
 
 1. Check Nextflow logs: `work/` directory contains detailed execution logs
-2. Check MultiQC report: `results_*/multiqc/multiqc_report.html`
-3. Review SLURM output files: `*_%j.out` and `*_%j.err`
+2. Review SLURM output files: `*_%j.out` and `*_%j.err`
+3. Check QC results: `fastp/` directory for short-read data, assembly directories for long-read data
 
 ## Citation
 
