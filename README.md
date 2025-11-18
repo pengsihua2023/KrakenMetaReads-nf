@@ -197,6 +197,14 @@ bash batch_calculate_abundance_longread_en.sh results_viral_long
 #### Short-Read Data
 
 ```bash
+# Files may be in subdirectories or directly in tool directories
+# The script will search both locations automatically
+python3 calculate_abundance_en.py \
+  --bracken results_viral_short/bracken/sample1/sample1_bracken.tsv \
+  --kraken results_viral_short/kraken2/sample1/sample1.report \
+  --output sample1_abundance.tsv
+
+# Or if files are directly in tool directories:
 python3 calculate_abundance_en.py \
   --bracken results_viral_short/bracken/sample1_bracken.tsv \
   --kraken results_viral_short/kraken2/sample1.report \
@@ -206,6 +214,14 @@ python3 calculate_abundance_en.py \
 #### Long-Read Data
 
 ```bash
+# Note: Long-read data does NOT use Bracken
+# Files may be in subdirectories or directly in tool directories
+python3 calculate_abundance_longread_en.py \
+  --kraken results_viral_long/kraken2/sample1/sample1.report \
+  --output sample1_abundance.tsv \
+  --level S
+
+# Or if files are directly in tool directories:
 python3 calculate_abundance_longread_en.py \
   --kraken results_viral_long/kraken2/sample1.report \
   --output sample1_abundance.tsv \
@@ -214,23 +230,63 @@ python3 calculate_abundance_longread_en.py \
 
 ## Output Structure
 
+### Short-Read Data Structure
+
 ```
-results_viral_short/          # or results_viral_long/
-├── kraken2/                  # Kraken2 classification results
-│   ├── sample1.report
+results_viral_short/
+├── kraken2/                          # Kraken2 classification results
+│   ├── sample1/                      # Sample-specific subdirectory (may exist)
+│   │   └── sample1.report            # or sample1.kraken2.report.txt
+│   ├── sample2/
+│   │   └── sample2.report
+│   ├── sample1.report                # Or files directly in kraken2/
 │   └── sample2.report
-├── bracken/                  # Bracken abundance estimates (short-read only)
-│   ├── sample1_bracken.tsv
+├── bracken/                          # Bracken abundance estimates (short-read only)
+│   ├── sample1/                      # Sample-specific subdirectory (may exist)
+│   │   └── sample1_bracken.tsv       # or sample1.bracken_species.tsv
+│   ├── sample2/
+│   │   └── sample2_bracken.tsv
+│   ├── sample1_bracken.tsv           # Or files directly in bracken/
 │   └── sample2_bracken.tsv
-├── abundance/                # Calculated abundance metrics
+├── abundance/                        # Calculated abundance metrics (created by scripts)
 │   ├── sample1_abundance.tsv
 │   ├── sample2_abundance.tsv
 │   ├── all_samples_abundance_summary.tsv
 │   └── top_viruses_summary.tsv
-├── multiqc/                  # MultiQC quality control report
+├── fastqc/                           # Quality control reports
+├── multiqc/                          # MultiQC quality control report
 │   └── multiqc_report.html
-└── pipeline_info/            # Pipeline execution metadata
+├── pipeline_info/                    # Pipeline execution metadata
+└── [other tool outputs]/             # Additional tool outputs if enabled
 ```
+
+### Long-Read Data Structure
+
+```
+results_viral_long/
+├── kraken2/                          # Kraken2 classification results
+│   ├── sample1/                      # Sample-specific subdirectory (may exist)
+│   │   └── sample1.report            # or sample1.kraken2.report.txt
+│   ├── sample2/
+│   │   └── sample2.report
+│   ├── sample1.report                # Or files directly in kraken2/
+│   └── sample2.report
+├── abundance/                        # Calculated abundance metrics (created by scripts)
+│   ├── sample1_abundance.tsv
+│   ├── sample2_abundance.tsv
+│   ├── all_samples_abundance_summary.tsv
+│   └── top_viruses_summary.tsv
+├── nanoplot/                         # Long-read quality control (Nanoplot)
+├── multiqc/                          # MultiQC quality control report
+│   └── multiqc_report.html
+├── pipeline_info/                    # Pipeline execution metadata
+└── [other tool outputs]/             # Additional tool outputs if enabled
+```
+
+**Note**: 
+- nf-core/taxprofiler may organize files in sample-specific subdirectories or directly in tool directories
+- The batch scripts automatically search both locations
+- **Bracken directory is NOT present for long-read data** (Bracken is designed for short reads only)
 
 ### Abundance Output Format
 
@@ -271,11 +327,17 @@ RPKM = assigned_reads / (genome_length_kb × total_reads_million)
 - Uses Kraken2 for classification
 - Applies Bracken statistical correction to improve abundance estimates
 - Bracken is designed for short reads (50-300 bp)
+- **Output structure**: Contains both `kraken2/` and `bracken/` directories
+- **Abundance calculation**: Uses both Kraken2 reports and Bracken output files
+- **QC tools**: FastQC for quality control
 
 **Long-Read (Nanopore/PacBio)**:
 - Uses Kraken2 for classification
 - No Bracken correction needed (long reads contain more information)
 - Direct extraction from Kraken2 reports is sufficient
+- **Output structure**: Contains only `kraken2/` directory (no `bracken/` directory)
+- **Abundance calculation**: Uses only Kraken2 report files
+- **QC tools**: Nanoplot for long-read quality control
 
 ### Custom Genome Length Database
 
